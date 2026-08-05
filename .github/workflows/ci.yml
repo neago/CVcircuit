@@ -12,7 +12,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
-        with:
-          python-version: ${{ matrix.python-version }}
-      - run: uv sync --all-extras
+      - run: uv sync --all-extras --python ${{ matrix.python-version }}
       - run: uv run pytest -v
