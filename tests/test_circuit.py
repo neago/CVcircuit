@@ -50,6 +50,78 @@ def test_mode_validation():
 
 
 # ---------------------------------------------------------------------------
+# interferometer mesh decomposition
+# ---------------------------------------------------------------------------
+
+
+def _random_unitary(n, seed=0):
+    rng = np.random.default_rng(seed)
+    z = (rng.normal(size=(n, n)) + 1j * rng.normal(size=(n, n))) / np.sqrt(2)
+    q, r = np.linalg.qr(z)
+    return q @ np.diag(np.diag(r) / np.abs(np.diag(r)))
+
+
+def test_interferometer_defaults_to_clements_mesh():
+    n = 4
+    unitary = _random_unitary(n, seed=1)
+    circuit = ci.Circuit(n)
+    circuit.interferometer(unitary)
+    # decomposed: more than one instruction, all beamsplitter/rotate, none opaque
+    assert len(circuit) == n + n * (n - 1) // 2
+    assert circuit.count_ops().keys() == {"beamsplitter", "rotate"}
+    expected = st.vacuum(n).interferometer(unitary)
+    assert np.allclose(circuit.state().cov, expected.cov, atol=1e-8)
+
+
+def test_interferometer_mesh_reck_option():
+    n = 4
+    unitary = _random_unitary(n, seed=2)
+    circuit = ci.Circuit(n)
+    circuit.interferometer(unitary, mesh="reck")
+    expected = st.vacuum(n).interferometer(unitary)
+    assert np.allclose(circuit.state().cov, expected.cov, atol=1e-8)
+
+
+def test_interferometer_clements_shallower_than_reck():
+    n = 6
+    unitary = _random_unitary(n, seed=3)
+    depth_clements = ci.Circuit(n).interferometer(unitary).depth()
+    depth_reck = ci.Circuit(n).interferometer(unitary, mesh="reck").depth()
+    assert depth_clements < depth_reck
+
+
+def test_interferometer_mesh_none_is_opaque_single_instruction():
+    n = 3
+    unitary = _random_unitary(n, seed=4)
+    circuit = ci.Circuit(n)
+    circuit.interferometer(unitary, mesh=None)
+    assert len(circuit) == 1
+    assert circuit.instructions[0].kind == "interferometer"
+    expected = st.vacuum(n).interferometer(unitary)
+    assert np.allclose(circuit.state().cov, expected.cov, atol=1e-8)
+
+
+def test_interferometer_mesh_respects_mode_remapping():
+    unitary = _random_unitary(3, seed=5)
+    circuit = ci.Circuit(5)
+    circuit.interferometer(unitary, modes=(1, 3, 4))
+    expected = st.vacuum(5).interferometer(unitary, modes=(1, 3, 4))
+    assert np.allclose(circuit.state().cov, expected.cov, atol=1e-8)
+    touched = {m for instr in circuit.instructions for m in instr.modes}
+    assert touched <= {1, 3, 4}
+
+
+def test_interferometer_wrong_number_of_modes():
+    with pytest.raises(ValueError, match="expected 4 modes"):
+        ci.Circuit(4).interferometer(_random_unitary(3), modes=(0, 1, 2, 3))
+
+
+def test_interferometer_invalid_mesh_option():
+    with pytest.raises(ValueError, match="mesh must be"):
+        ci.Circuit(2).interferometer(_random_unitary(2), mesh="bogus")
+
+
+# ---------------------------------------------------------------------------
 # to_symplectic / to_channel
 # ---------------------------------------------------------------------------
 

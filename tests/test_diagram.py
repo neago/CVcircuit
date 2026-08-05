@@ -18,7 +18,7 @@ def _every_kind_circuit():
     circuit.two_mode_squeeze(0.5, modes=(1, 2))
     circuit.cz(0.8, modes=(0, 2))
     circuit.cx(1.2, modes=(1, 2))
-    circuit.interferometer(np.eye(2, dtype=complex), modes=(0, 1))
+    circuit.interferometer(np.eye(2, dtype=complex), modes=(0, 1), mesh=None)
     circuit.loss(0.9, mode=1)
     circuit.amplify(1.2, mode=0)
     circuit.noise(0.05, mode=2)
@@ -52,7 +52,7 @@ def test_text_and_mpl_renderers_share_layout_columns():
 def test_render_text_contains_every_label():
     circuit = _every_kind_circuit()
     text = dg.render_text(dg.layout(circuit))
-    for expected in ("S 1", "D 1+1j", "R π/4", "BS π/4", "TMS 0.5", "CZ 0.8", "CX 1.2",
+    for expected in ("S 1", "D 1+1j", "R π/4", "BS π/4", "TMS 0.5", "CZ 0.8", "CX 1.2", "U",
                        "η 0.9", "G 1.2", "ξ 0.05", "x(π/2)", "het", "gd"):
         assert expected in text, f"missing {expected!r} in:\n{text}"
 

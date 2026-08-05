@@ -95,10 +95,19 @@ s = s.displace(1 + 0.5j, mode=0)
 ```
 
 For an arbitrary passive interferometer, pass a unitary matrix:
-`s.interferometer(U, modes=(0, 1, 2))`, or decompose one into a mesh of
-beamsplitters with `decompositions.clements_decomposition(U)` (depth-optimal
-rectangular mesh, the recommended default) or `decompositions.interferometer_mesh(U)`
-(simpler triangular mesh) — see demo 02.
+`s.interferometer(U, modes=(0, 1, 2))` applies it directly as one
+transform. `Circuit.interferometer(U, modes=..., mesh="clements")`
+(the default) instead **decomposes** it into the physical mesh of
+beamsplitters and phase shifters and appends those as ordinary
+instructions, so it draws, counts toward `depth()`, and feeds
+`to_symplectic()`/`to_channel()` like a hand-built mesh would — pass
+`mesh="reck"` for the simpler but deeper triangular mesh, or `mesh=None`
+for a single opaque instruction (one box, cheaper for large n). The
+underlying decompositions are also directly callable:
+`decompositions.clements_decomposition(U)` (depth-optimal rectangular
+mesh, Clements et al., Optica 3, 1460 (2016)) and
+`decompositions.interferometer_mesh(U)` (simpler triangular mesh, Reck et
+al., PRL 73, 58 (1994)) — see demo 02.
 
 ## Channels and noise
 

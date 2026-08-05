@@ -111,6 +111,13 @@ methods above, plus `.symplectic(matrix, modes=None, d=None)`, and
 measurements take an optional `label=`:
 `.homodyne(...)`, `.heterodyne(...)`, `.generaldyne(...)`.
 
+`.interferometer(unitary, modes=None, mesh="clements")` differs from
+`GaussianState`'s: by default it **decomposes** the unitary into physical
+beamsplitter/phase-shifter instructions (Clements rectangular mesh, depth
+n) rather than applying it as one opaque transform, so it draws and counts
+toward `depth()` like a hand-built mesh. `mesh="reck"` for the triangular
+(depth 2n-3) mesh instead, `mesh=None` for a single opaque instruction.
+
 | member | description |
 |---|---|
 | `.state(seed=None)` | run once, return the final `GaussianState` |

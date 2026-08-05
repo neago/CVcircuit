@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from . import channels as _channels
+from . import decompositions
 from . import ops
 from . import state as _state
 
@@ -106,12 +107,46 @@ class Circuit:
         """Two-mode squeezing on ``modes``."""
         return self._append("two_mode_squeeze", modes, {"r": r, "phi": phi})
 
-    def interferometer(self, unitary, modes=None):
-        """Passive interferometer (unitary matrix) on ``modes`` (default: the first len(unitary) modes)."""
+    def interferometer(self, unitary, modes=None, mesh="clements"):
+        """Passive interferometer (unitary matrix) on ``modes`` (default: the first len(unitary) modes).
+
+        By default (``mesh="clements"``) this decomposes the unitary into
+        its physical mesh of beamsplitters and phase shifters (the
+        depth-optimal rectangular mesh, Clements et al., Optica 3, 1460
+        (2016)) and appends *those* as ordinary instructions -- so it draws,
+        counts toward ``depth()``, and feeds ``to_symplectic()``/
+        ``to_channel()`` exactly like a hand-built mesh would.  Pass
+        ``mesh="reck"`` for the simpler but deeper (2n-3) triangular mesh,
+        or ``mesh=None`` to append a single opaque ``"interferometer"``
+        instruction instead (matching
+        :meth:`~cvcircuit.state.GaussianState.interferometer`'s direct,
+        undecomposed application -- one box in diagrams, one line of depth,
+        cheaper for large n).
+        """
         unitary = np.asarray(unitary)
         if modes is None:
             modes = range(unitary.shape[0])
-        return self._append("interferometer", modes, {"unitary": unitary})
+        modes = self._check_modes(modes)
+        if unitary.shape[0] != len(modes):
+            raise ValueError(f"unitary has shape {unitary.shape}, expected {len(modes)} modes")
+
+        if mesh is None:
+            return self._append("interferometer", modes, {"unitary": unitary})
+        if mesh == "clements":
+            elements = decompositions.clements_decomposition(unitary)
+        elif mesh == "reck":
+            elements = decompositions.interferometer_mesh(unitary)
+        else:
+            raise ValueError(f"mesh must be 'clements', 'reck', or None, got {mesh!r}")
+
+        for element in elements:
+            if element[0] == "phase":
+                _, local_mode, angle = element
+                self.rotate(angle, mode=modes[local_mode])
+            else:
+                _, local_m1, local_m2, theta, phi = element
+                self.beamsplitter(theta, modes=(modes[local_m1], modes[local_m2]), phi=phi)
+        return self
 
     def cz(self, s=1.0, modes=(0, 1)):
         """CV controlled-Z gate, edge weight s, on ``modes``."""
