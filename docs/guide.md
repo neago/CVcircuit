@@ -96,7 +96,9 @@ s = s.displace(1 + 0.5j, mode=0)
 
 For an arbitrary passive interferometer, pass a unitary matrix:
 `s.interferometer(U, modes=(0, 1, 2))`, or decompose one into a mesh of
-beamsplitters with `decompositions.interferometer_mesh(U)` — see demo 02.
+beamsplitters with `decompositions.clements_decomposition(U)` (depth-optimal
+rectangular mesh, the recommended default) or `decompositions.interferometer_mesh(U)`
+(simpler triangular mesh) — see demo 02.
 
 ## Channels and noise
 

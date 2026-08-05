@@ -188,9 +188,11 @@ for the full n-mode system.
 `symplectic_eigenvalues(cov)`, `symplectic_eigenvalues_snu(cov, hbar=2)`,
 `williamson(cov, atol=1e-9)` → `(S, D)`,
 `bloch_messiah(matrix, atol=1e-9)` → `(O1, Z, O2)`,
+`clements_decomposition(unitary, atol=1e-9)` and
 `interferometer_mesh(unitary, atol=1e-9)` → ordered list of
 `("phase", mode, angle)` / `("bs", mode1, mode2, theta, phi)` elements
-(Reck-style triangular mesh).
+(Clements rectangular mesh, depth n, recommended; Reck triangular mesh,
+depth 2n-3 — same return format, interchangeable).
 
 ---
 

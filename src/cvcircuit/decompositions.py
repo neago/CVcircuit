@@ -9,9 +9,9 @@ to machine precision by ``tests/test_decompositions.py`` against random
 symplectic matrices and against reconstruction of the original input.
 
 References: Weedbrook et al., RMP 84, 621 (2012), Sec. II.C.2 (Williamson)
-and III.E (Bloch-Messiah); Reck et al., PRL 73, 58 (1994) (interferometer
-mesh) -- see also Clements et al., Optica 3, 1460 (2016) for the
-depth-optimal rectangular variant, which this module does not implement.
+and III.E (Bloch-Messiah); Reck et al., PRL 73, 58 (1994) (triangular
+interferometer mesh); Clements et al., Optica 3, 1460 (2016) (depth-optimal
+rectangular mesh).
 """
 
 from __future__ import annotations
@@ -151,8 +151,39 @@ def bloch_messiah(matrix, atol=_ATOL):
 
 
 # ---------------------------------------------------------------------------
-# interferometer mesh (Reck-style triangular decomposition)
+# interferometer meshes (Reck triangular, Clements rectangular)
 # ---------------------------------------------------------------------------
+
+
+def _embed_t(n, i, j, theta, phi):
+    """T(theta, phi) (matching ops.beamsplitter) embedded on modes i < j of an n x n identity."""
+    c, s = np.cos(theta), np.sin(theta)
+    t_mat = np.eye(n, dtype=complex)
+    t_mat[i, i] = c
+    t_mat[i, j] = -s * np.exp(-1j * phi)
+    t_mat[j, i] = s * np.exp(1j * phi)
+    t_mat[j, j] = c
+    return t_mat
+
+
+def _embed_t_inv(n, i, j, theta, phi):
+    """T(theta, phi)^-1 = T(theta, phi)^dagger, embedded on modes i < j of an n x n identity."""
+    c, s = np.cos(theta), np.sin(theta)
+    t_mat = np.eye(n, dtype=complex)
+    t_mat[i, i] = c
+    t_mat[i, j] = s * np.exp(-1j * phi)
+    t_mat[j, i] = -s * np.exp(1j * phi)
+    t_mat[j, j] = c
+    return t_mat
+
+
+def _check_unitary(u_mat, atol):
+    n = u_mat.shape[0]
+    if u_mat.shape != (n, n):
+        raise ValueError(f"unitary must be square, got shape {u_mat.shape}")
+    if not np.allclose(u_mat @ u_mat.conj().T, np.eye(n), atol=atol):
+        raise ValueError("unitary must satisfy U U^dagger = I")
+    return n
 
 
 def interferometer_mesh(unitary, atol=1e-9):
@@ -167,25 +198,12 @@ def interferometer_mesh(unitary, atol=1e-9):
 
         U == interferometer(compose of the returned elements)
 
-    This is a triangular (Reck), not depth-optimal rectangular (Clements),
-    mesh -- simpler to construct correctly and equally general; only the
-    circuit depth differs.
+    Circuit depth is 2n-3 (n-1 output phases folded in); see
+    :func:`clements_decomposition` for the depth-n rectangular mesh most
+    integrated/fibre photonics hardware actually uses.
     """
     u_mat = np.array(unitary, dtype=complex)
-    n = u_mat.shape[0]
-    if u_mat.shape != (n, n):
-        raise ValueError(f"unitary must be square, got shape {u_mat.shape}")
-    if not np.allclose(u_mat @ u_mat.conj().T, np.eye(n), atol=atol):
-        raise ValueError("unitary must satisfy U U^dagger = I")
-
-    def block(row1, row2, theta, phi):
-        c, s = np.cos(theta), np.sin(theta)
-        t_mat = np.eye(n, dtype=complex)
-        t_mat[row1, row1] = c
-        t_mat[row1, row2] = -s * np.exp(-1j * phi)
-        t_mat[row2, row1] = s * np.exp(1j * phi)
-        t_mat[row2, row2] = c
-        return t_mat
+    n = _check_unitary(u_mat, atol)
 
     eliminations = []
     working = u_mat.copy()
@@ -197,7 +215,7 @@ def interferometer_mesh(unitary, atol=1e-9):
             else:
                 theta = np.arctan2(abs(b), abs(a))
                 phi = np.angle(b) - np.angle(a) + np.pi
-            working = block(row - 1, row, theta, phi) @ working
+            working = _embed_t(n, row - 1, row, theta, phi) @ working
             eliminations.append((row - 1, row, theta, phi))
     output_phases = np.angle(np.diag(working))
 
@@ -205,4 +223,77 @@ def interferometer_mesh(unitary, atol=1e-9):
     for row1, row2, theta, phi in reversed(eliminations):
         # physical realization applies T^dagger = T(theta, phi + pi)
         elements.append(("bs", row1, row2, float(theta), float(phi + np.pi)))
+    return elements
+
+
+def clements_decomposition(unitary, atol=1e-9):
+    """Decompose an n-mode unitary into a depth-optimal **rectangular** mesh
+    of beamsplitters and phase shifters (Clements, Humphreys, Metcalf,
+    Kolthammer & Walmsley, Optica 3, 1460 (2016)).
+
+    Same return format as :func:`interferometer_mesh` (interchangeable
+    with it) -- a list of ``("phase", mode, angle)`` / ``("bs", mode1,
+    mode2, theta, phi)`` elements in physical application order, ``theta,
+    phi`` again exactly :func:`cvcircuit.ops.beamsplitter`'s arguments.
+    Circuit depth is n (vs. Reck's 2n-3) -- the minimum possible for a mesh
+    of nearest-neighbour two-mode elements, and the standard choice in
+    integrated and fibre photonics.
+
+    Implementation follows the paper's alternating elimination (Sec. I.2):
+    walking anti-diagonals of the unitary, odd steps null an element via
+    *right* multiplication by T^-1 (combining two adjacent columns), even
+    steps via *left* multiplication by T (combining two adjacent rows),
+    reducing the matrix to a diagonal D.  The paper's phase-screen "move"
+    identity, ``T^-1(theta, phi) D = D T(theta, phi')``, then lets every
+    row-eliminated (T^-1) element's phase be corrected -- independently,
+    against the *final* D, since D itself is unchanged by the move -- so
+    the whole thing reassembles into one physical left-to-right mesh
+    followed by an output phase screen.  (The identity above is this
+    module's own re-derivation for :func:`cvcircuit.ops.beamsplitter`'s T
+    convention, not copied from the paper, which uses a different one;
+    ``phi' = phi + angle(D[m1]) - angle(D[m2]) + pi``.)
+    """
+    u_mat = np.array(unitary, dtype=complex)
+    n = _check_unitary(u_mat, atol)
+
+    working = u_mat.copy()
+    left_ops = []   # nulled via left mult by T:     (mode1, mode2, theta, phi)
+    right_ops = []  # nulled via right mult by T^-1: (mode1, mode2, theta, phi)
+    for i in range(1, n):
+        if i % 2 == 1:
+            for j in range(i):
+                row, col1, col2 = (n - j) - 1, (i - j) - 1, i - j
+                p, q = working[row, col1], working[row, col2]
+                if abs(p) < atol:
+                    theta, phi = 0.0, 0.0
+                else:
+                    theta = np.arctan2(abs(p), abs(q))
+                    phi = np.angle(p) - np.angle(q)
+                working = working @ _embed_t_inv(n, col1, col2, theta, phi)
+                right_ops.append((col1, col2, theta, phi))
+        else:
+            for j in range(1, i + 1):
+                row, col, m1 = (n + j - i) - 1, j - 1, (n + j - i - 1) - 1
+                m2 = m1 + 1
+                a, b = working[m1, col], working[row, col]
+                if abs(b) < atol:
+                    theta, phi = 0.0, 0.0
+                else:
+                    theta = np.arctan2(abs(b), abs(a))
+                    phi = np.angle(b) - np.angle(a) + np.pi
+                working = _embed_t(n, m1, m2, theta, phi) @ working
+                left_ops.append((m1, m2, theta, phi))
+    output_phases = np.angle(np.diag(working))
+
+    left_ops_corrected = [
+        (m1, m2, theta, phi + output_phases[m1] - output_phases[m2] + np.pi)
+        for (m1, m2, theta, phi) in left_ops
+    ]
+
+    elements = [("bs", m1, m2, float(theta), float(phi)) for (m1, m2, theta, phi) in right_ops]
+    elements += [
+        ("bs", m1, m2, float(theta), float(phi))
+        for (m1, m2, theta, phi) in reversed(left_ops_corrected)
+    ]
+    elements += [("phase", mode, float(angle)) for mode, angle in enumerate(output_phases)]
     return elements

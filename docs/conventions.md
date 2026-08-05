@@ -229,13 +229,38 @@ bits).
 
 ## Interferometer decomposition
 
-`decompositions.interferometer_mesh` decomposes an $n$-mode unitary into a
-**triangular** mesh of beamsplitters and phase shifters (Reck et al., PRL
-**73**, 58 (1994)) — not the depth-optimal **rectangular** mesh (Clements et
-al., Optica **3**, 1460 (2016)). Both are exact and general; only the
-circuit *depth* differs ($O(n)$ vs $O(n)$ layers but a different constant —
-Clements' mesh is shallower). Simpler to construct correctly, at the cost
-of a somewhat deeper circuit.
+Two ways to decompose an $n$-mode unitary into a physical mesh of
+beamsplitters and phase shifters; both return the same
+`("phase", mode, angle)` / `("bs", mode1, mode2, theta, phi)` element list
+(interchangeably), with `theta, phi` exactly `ops.beamsplitter`'s arguments:
+
+* `decompositions.clements_decomposition` — the depth-optimal
+  **rectangular** mesh (Clements, Humphreys, Metcalf, Kolthammer &
+  Walmsley, Optica **3**, 1460 (2016)), circuit depth $n$ — the standard
+  choice in integrated/fibre photonics, and this package's **recommended
+  default**.
+* `decompositions.interferometer_mesh` — the simpler **triangular** mesh
+  (Reck et al., PRL **73**, 58 (1994)), circuit depth $2n-3$.
+
+Both are exact and general. Clements' algorithm alternates nulling matrix
+elements via left multiplication (combining two rows) and right
+multiplication by the *inverse* T-matrix (combining two columns) along
+successive anti-diagonals, then uses a phase-screen "move" identity,
+
+$$
+T^{-1}(\theta,\varphi)\,D = D\,T(\theta,\varphi'), \qquad
+\varphi' = \varphi + \delta_{m_1} - \delta_{m_2} + \pi
+$$
+
+($D=\mathrm{diag}(e^{i\delta_1},\ldots,e^{i\delta_n})$ **unchanged** — only
+$\varphi$ shifts) to sweep the diagonal phase matrix through every
+row-eliminated element, reassembling the mixed left/right eliminations
+into one physical left-to-right mesh followed by a single output phase
+screen. This identity is this package's own re-derivation for
+`ops.beamsplitter`'s T-matrix convention (verified against it directly,
+`tests/test_decompositions.py::test_clements_is_shallower_than_reck`) —
+the source paper uses a different convention, so its version of the
+identity doesn't transfer directly.
 
 ## Quick reference table
 
