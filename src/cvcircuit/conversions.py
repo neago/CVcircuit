@@ -13,7 +13,7 @@ Three independent conventions meet in this module, each documented in
   from decibels, using the sign convention r_dB = 10 log10(exp(-2r)), so
   squeezing (r > 0) is reported as **negative** dB.  This matches
   ``lcg_plus.conversions`` and everyday lab usage ("-3 dB of squeezing");
-  some references (e.g. TN_Sampling) use the opposite sign.
+  some references use the opposite sign.
 * **Complex amplitude <-> quadratures** -- :func:`alpha_to_xp` /
   :func:`xp_to_alpha` convert between the complex amplitude alpha = (x +
   ip)/sqrt(2 hbar) and an xpxp displacement vector, for whichever hbar the

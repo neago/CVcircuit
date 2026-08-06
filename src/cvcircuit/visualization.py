@@ -1,14 +1,14 @@
 """Phase-space and covariance visualization.
 
-Matplotlib conventions follow the user's own tools (``lcg_plus/plotting.py``,
-``qopt/tomography_plotting.py``): ``imshow`` with bilinear interpolation, a
-symmetric ``Normalize(-scale, scale)`` for signed quasiprobabilities,
+Plotting conventions: ``imshow`` with bilinear interpolation, a symmetric
+``Normalize(-scale, scale)`` for signed quasiprobabilities,
 ``ax.set_aspect("equal")``, ``(..., ax=None)`` defaulting to ``plt.gca()``,
-and no ``plt.show()`` or global rcParams.  The default diverging colormap
-``CMWIG1`` is the user's own hand-tuned blue-white-red map from
-``qopt/tomography_plotting.py``; pass ``cmap=`` to override.  We use
-``origin="lower"`` throughout, so (unlike ``lcg_plus``) no ``-pvec``
-meshgrid flip is needed to match the phase-space y-axis convention.
+and no ``plt.show()`` or global rcParams -- matching ``lcg_plus/plotting.py``
+so figures from both packages sit together cleanly.  The default diverging
+colormap ``CMWIG1`` is a hand-tuned blue-white-red map; pass ``cmap=`` to
+override.  We use ``origin="lower"`` throughout, so (unlike ``lcg_plus``)
+no ``-pvec`` meshgrid flip is needed to match the phase-space y-axis
+convention.
 """
 
 from __future__ import annotations

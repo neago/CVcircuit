@@ -4,7 +4,9 @@ All matrices here act on the **xpxp** phase-space vector r = (x1, p1, x2,
 p2, ...) and are independent of hbar -- only displacements (the *mean*, not
 the *covariance* transform) depend on hbar, via :func:`displacement`.  See
 :mod:`docs/conventions.md` for the full formalism and literature references
-(Brask arXiv:2102.05748, Weedbrook et al. RMP 84, 621 (2012)).
+(Brask arXiv:2102.05748, Weedbrook et al. RMP 84, 621 (2012)).  The gate
+matrices themselves follow the same block layout as ``lcg_plus/operations/symplectic.py``,
+so results are directly cross-checkable between the two packages.
 
 A symplectic matrix S acts on mean and covariance as::
 

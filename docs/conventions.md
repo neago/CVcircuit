@@ -24,10 +24,10 @@ Strawberry Fields / most CV-QKD papers). Pass `hbar=1` for the
 Brask/Ferraro-Olivares-Paris convention used in much of the theory
 literature (vacuum covariance = ½𝟙).
 
-Your own experimental pipeline (`qopt/tomography.py`'s `# Normalize traces
-to 0.5 vacuum variance`, and the analytic Wigner functions in `cvqubits`)
-is `hbar=1` — pass `hbar=1` when comparing against homodyne data normalized
-that way.
+Homodyne-tomography pipelines that normalize traces to 0.5 vacuum variance,
+and analytic treatments that fix ħ=1 throughout, use this second
+convention — pass `hbar=1` when comparing against data or derivations
+normalized that way.
 
 Complex amplitude: $\alpha = (x+ip)/\sqrt{2\hbar}$, so a displacement by
 $\alpha$ shifts the mean by $d=\sqrt{2\hbar}\,(\mathrm{Re}\,\alpha,\ \mathrm{Im}\,\alpha)$.
@@ -176,8 +176,8 @@ $$ r_{\rm dB} = 10\log_{10}\!\big(e^{-2r}\big) $$
 
 so squeezing ($r>0$) is reported as **negative** dB — `conversions.r_to_db(1.0)`
 = −8.686 dB — matching `lcg_plus.conversions` and everyday lab usage ("−3 dB
-of squeezing"). Some references (e.g. `TN_Sampling`) use the opposite sign;
-double-check when comparing numbers from elsewhere.
+of squeezing"). Some references use the opposite sign; double-check when
+comparing numbers from elsewhere.
 
 ## Fidelity
 
@@ -188,10 +188,11 @@ $F(\rho,\sigma)=\big(\mathrm{Tr}\sqrt{\sqrt\rho\,\sigma\sqrt\rho}\big)^2$, somet
 called the "Jozsa" convention; note some papers, including Banchi-Braunstein-Pirandola
 itself, call the *unsquared* overlap "fidelity" instead). Computed via the
 Banchi-Braunstein-Pirandola formula for arbitrary multimode Gaussian
-states, rescaled to $\hbar=1$ internally (the formula's own convention);
-since $\Omega$ transforms the same way as $\sigma$ under any fixed
-reordering, it's applied directly in this library's native xpxp order with
-no xxpp conversion needed.
+states (following the same Eq. 112 arrangement used in `thewalrus.quantum.fidelity`,
+reworked here to avoid a SciPy `sqrtm` call), rescaled to $\hbar=1$
+internally (the formula's own convention); since $\Omega$ transforms the
+same way as $\sigma$ under any fixed reordering, it's applied directly in
+this library's native xpxp order with no xxpp conversion needed.
 
 ## Entanglement, separability and steering
 

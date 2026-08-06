@@ -56,9 +56,12 @@ def fidelity(state_a, state_b):
 
     Uses the Banchi-Braunstein-Pirandola formula (PRL 115, 260501 (2015),
     Eqs. 9-15) for arbitrary multimode Gaussian states, rescaled to their
-    hbar=1 convention internally.  Returns the **squared** fidelity (the
-    convention this package shares with ``qcircsim.quantum_info.state_fidelity``):
-    for two coherent states, ``fidelity(coherent(a), coherent(b)) == exp(-|a-b|**2)``.
+    hbar=1 convention internally -- the same Eq. 112 arrangement used in
+    ``thewalrus.quantum.fidelity``, reworked here to use an eigendecomposition
+    (:func:`_matrix_sqrt_general`) instead of SciPy's ``sqrtm``.  Returns the
+    **squared** fidelity (the convention this package shares with
+    ``qcircsim.quantum_info.state_fidelity``): for two coherent states,
+    ``fidelity(coherent(a), coherent(b)) == exp(-|a-b|**2)``.
     """
     if state_a.num_modes != state_b.num_modes:
         raise ValueError(f"states have different numbers of modes ({state_a.num_modes} vs {state_b.num_modes})")
